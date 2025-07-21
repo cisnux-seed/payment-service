@@ -1,0 +1,26 @@
+spring:
+  webflux:
+    static-path-pattern: ""
+  web:
+    resources:
+      add-mappings: false
+      static-locations: [ ]
+      cache:
+        period: 0
+  application:
+    name: payment
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  main:
+    web-application-type: reactive
+  r2dbc:
+    url: ${DB_URL:r2dbc:postgresql://one-gate-payment-db:5432/one_gate_payment}
+    username: ${DB_USERNAME:developer}
+    password: ${DB_PASSWORD:developer123}
+server:
+  port: ${SERVER_PORT:8080}
+logging:
+  level:
+    org.springframework.r2dbc.core: ${DATABASE_LOG_LEVEL:DEBUG}
+    io.r2dbc.spi: ${DATABASE_LOG_LEVEL:DEBUG}
+    org.springframework.web: ${WEB_LOG_LEVEL:DEBUG}

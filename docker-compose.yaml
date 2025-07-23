@@ -49,8 +49,15 @@ services:
       - flyway
       - authentication-one-gate-payment
     environment:
-      PROFILE_MODE: local
+      GOPAY_BASE_URL: https://gopay-service-external-services.apps.ocp-one-gate-payment.skynux.fun/gopay
       SERVER_PORT: 8082
+      GOPAY_CLIENT_ID: gopay_client_123
+      GOPAY_CLIENT_SECRET: secret_key_456
+      GOPAY_SIGNATURE: Mysignature22
+      SHOPEE_PAY_BASE_URL: https://shopee-pay-service-external-services.apps.ocp-one-gate-payment.skynux.fun/v2/shopeepay
+      SHOPEE_PAY_MERCHANT_ID: SHOPEE_MERCHANT_001
+      SHOPEE_PAY_API_KEY: ShopeePayApiKey123
+      SHOPEE_PAY_SIGNATURE: ShopeePaySignature456
     ports:
       - "8082:8082"
     build:

@@ -1,8 +1,9 @@
 plugins {
-    kotlin("jvm") version "1.9.25"
-    kotlin("plugin.spring") version "1.9.25"
+    kotlin("jvm") version "2.1.0"
+    kotlin("plugin.spring") version "2.1.0"
     id("org.springframework.boot") version "3.5.3"
     id("io.spring.dependency-management") version "1.1.7"
+    kotlin("plugin.serialization") version "2.1.0"
 }
 
 group = "id.co.bni"
@@ -37,6 +38,12 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("io.ktor:ktor-client-core:3.2.2")
+    implementation("io.ktor:ktor-client-cio:3.2.2")
+    implementation("io.ktor:ktor-client-auth:3.2.2")
+    implementation("io.ktor:ktor-client-logging:3.2.2")
+    implementation("io.ktor:ktor-client-content-negotiation:3.2.2")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.2.2")
 }
 
 kotlin {

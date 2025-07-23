@@ -11,6 +11,18 @@ import org.springframework.stereotype.Repository
 class AccountRepositoryImpl(
     private val accountDao: AccountDao
 ) : AccountRepository {
+    override suspend fun updateAccountBalance(account: Account): Int = withContext(Dispatchers.IO) {
+        accountDao.updateAccount(
+            id = account.id,
+            userId = account.userId,
+            balance = account.balance,
+            currency = account.currency,
+            accountStatus = account.accountStatus.name,
+            updatedAt = account.updatedAt
+        )
+    }
+
+
     override suspend fun getAccountByUserId(userId: Long): Account? = withContext(Dispatchers.IO) {
         accountDao.findByUserId(userId)
     }

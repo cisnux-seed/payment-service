@@ -87,12 +87,6 @@ curl -i -X POST http://one-gate-payment-gateway:8001/services/payment-service/pl
   --data "name=jwt" \
   --data "config.secret_is_base64=false"
 
-# Enable request-transformer plugin AFTER JWT (this runs second)
-curl -i -X POST http://one-gate-payment-gateway:8001/services/payment-service/plugins \
-  --data "name=request-transformer" \
-  --data "config.add.headers[]=X-Username:\$(jwt.claims.sub)" \
-  --data "ordering.after[]=jwt"
-
 echo "Kong configuration completed!"
 echo "Gateway is available at: http://localhost:8000"
 echo "Admin API is available at: http://localhost:8001"

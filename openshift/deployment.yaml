@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: one-gate-payment
+  labels:
+    app: payment-service
+    version: "1.0.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+        version: "1.0.0"
+    spec:
+      containers:
+        - name: payment-service
+          image: image-registry.openshift-image-registry.svc:5000/one-gate-payment/payment-service:latest
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            - name: DB_URL
+              value: "r2dbc:postgresql://postgresql-service:5432/one_gate_payment"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: db-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: db-password
+            - name: REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: refresh-secret
+            - name: ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: access-secret
+            - name: GOPAY_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: gopay-base-url
+            - name: GOPAY_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: gopay-client-id
+            - name: GOPAY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: gopay-client-secret
+            - name: GOPAY_SIGNATURE
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: gopay-signature
+            - name: SHOPEE_PAY_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: shopee-pay-base-url
+            - name: SHOPEE_PAY_MERCHANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: shopee-pay-merchant-id
+            - name: SHOPEE_PAY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: shopee-pay-api-key
+            - name: SHOPEE_PAY_SIGNATURE
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: shopee-pay-signature
+            - name: BOOTSTRAP_SERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: bootstrap-servers
+            - name: ACCESS_TOKEN_EXPIRATION
+              value: "900000"
+            - name: REFRESH_TOKEN_EXPIRATION
+              value: "86400000"
+            - name: DATABASE_LOG_LEVEL
+              value: "INFO"
+            - name: SECURITY_LOG_LEVEL
+              value: "INFO"
+            - name: WEB_LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          imagePullPolicy: Always

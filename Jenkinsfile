@@ -61,7 +61,7 @@ spec:
   source:
     type: Git
     git:
-      uri: git@github.com:cisnux-seed/payment-service.git
+      uri: ssh://git@github.com:cisnux-seed/payment-service.git
       ref: main
     sourceSecret:
       name: github-ssh-keys

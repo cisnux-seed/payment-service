@@ -106,8 +106,8 @@ services:
       - one-gate-payment-kafka
       - one-gate-payment-zookeeper
     environment:
-      GOPAY_BASE_URL: https://gopay-service-external-services.apps.ocp-one-gate-payment.skynux.fun/gopay
       SERVER_PORT: 8082
+      GOPAY_BASE_URL: https://gopay-service-external-services.apps.ocp-one-gate-payment.skynux.fun/gopay
       GOPAY_CLIENT_ID: gopay_client_123
       GOPAY_CLIENT_SECRET: secret_key_456
       GOPAY_SIGNATURE: Mysignature22

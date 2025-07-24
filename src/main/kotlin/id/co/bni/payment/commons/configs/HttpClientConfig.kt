@@ -33,7 +33,7 @@ import org.springframework.beans.factory.annotation.Value
 import java.time.Instant
 
 @Configuration
-class HttpClientConfig: Loggable {
+class HttpClientConfig : Loggable {
     private val gopayBearerTokenStorage = mutableListOf<BearerTokens>()
     private val shopeePayBearerTokenStorage = mutableListOf<BearerTokens>()
 
@@ -105,7 +105,8 @@ class HttpClientConfig: Loggable {
             handleResponseExceptionWithRequest { exception, request ->
                 if (exception is ClientRequestException &&
                     exception.response.status == HttpStatusCode.Unauthorized &&
-                    !request.url.toString().contains("/authentication")) {
+                    !request.url.toString().contains("/authentication")
+                ) {
                     log.warn("shopee pay got 401 for ${request.url}, clearing tokens for retry")
                     shopeePayBearerTokenStorage.clear()
                     throw exception
@@ -151,7 +152,7 @@ class HttpClientConfig: Loggable {
         install(DefaultRequest) {
             if (!url.toString().contains("/authentication")) {
                 runBlocking {
-                    val token = getShopeePayCurrentToken()
+                    val token = getGopayCurrentToken()
                     headers["Authorization"] = "Bearer $token"
                 }
             }
@@ -161,7 +162,8 @@ class HttpClientConfig: Loggable {
             handleResponseExceptionWithRequest { exception, request ->
                 if (exception is ClientRequestException &&
                     exception.response.status == HttpStatusCode.Unauthorized &&
-                    !request.url.toString().contains("/authentication")) {
+                    !request.url.toString().contains("/authentication")
+                ) {
                     log.warn("gopay got 401 for ${request.url}, clearing tokens for retry")
                     gopayBearerTokenStorage.clear()
                     throw exception
@@ -259,5 +261,10 @@ class HttpClientConfig: Loggable {
     private suspend fun getShopeePayCurrentToken(): String {
         return shopeePayBearerTokenStorage.firstOrNull()?.accessToken
             ?: fetchShopeePayNewToken().accessToken
+    }
+
+    private suspend fun getGopayCurrentToken(): String {
+        return shopeePayBearerTokenStorage.firstOrNull()?.accessToken
+            ?: fetchGopayNewToken().accessToken
     }
 }

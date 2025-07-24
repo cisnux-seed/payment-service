@@ -8,10 +8,11 @@ import id.co.bni.payment.domains.dtos.ShopeePayAuthResp
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.HttpRequestRetry
-import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.logging.DEFAULT
@@ -26,7 +27,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
-import jakarta.annotation.PostConstruct
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.springframework.beans.factory.annotation.Value
 import java.time.Instant
@@ -60,19 +61,6 @@ class HttpClientConfig: Loggable {
     @Value("\${SHOPEE_PAY_SIGNATURE}")
     private lateinit var shopeePaySignature: String
 
-    @PostConstruct
-    fun init() {
-        // Initialize the token storage
-        log.info("gopay client initialized with clientId: $gopayClientId")
-        log.info("gopay client initialized with clientSecret: $gopayClientSecret")
-        log.info("gopay client initialized with signature: $gopaySignature")
-        log.info("gopay base URL: $gopayBaseUrl")
-        log.info("shopeePay client initialized with merchantId: $shopeePayMerchantId")
-        log.info("shopeePay client initialized with apiKey: $shopeePayApiKey")
-        log.info("shopeePay client initialized with signature: $shopeePaySignature")
-        log.info("shopeePay base URL: $shopePayBaseUrl")
-    }
-
     @Bean("shopeePayHttpClient")
     fun shopeePayHttpClient(): HttpClient = HttpClient(CIO) {
         install(Logging) {
@@ -80,35 +68,47 @@ class HttpClientConfig: Loggable {
             level = LogLevel.ALL
         }
         install(ContentNegotiation) {
-            json(
-                Json {
-                    ignoreUnknownKeys = true
-                }
-            )
+            json(Json { ignoreUnknownKeys = true })
         }
-        install(Auth) {
-            bearer {
-                loadTokens {
-                    shopeePayBearerTokenStorage.firstOrNull() ?: fetchShopeePayNewToken()
-                }
-                refreshTokens {
-                    fetchShopeePayNewToken()
-                }
-                sendWithoutRequest { request ->
-                    // Send credentials with requests to the auth endpoint
-                    request.url.host.contains("shopeepay") && !request.url.toString().contains("/authentication")
-                }
-            }
-        }
+
         install(HttpRequestRetry) {
             retryOnServerErrors(maxRetries = 2)
+            exponentialDelay()
+
             retryIf(maxRetries = 1) { request, response ->
-                response.status == HttpStatusCode.Unauthorized
+                response.status == HttpStatusCode.Unauthorized &&
+                        !request.url.toString().contains("/authentication")
             }
+
             modifyRequest { request ->
-                // Clear stored token on 401 so it will be refreshed
                 if (response?.status == HttpStatusCode.Unauthorized) {
+                    log.info("shopee pay refreshing token due to 401 response")
+                    // Refresh token and update the request
+                    runBlocking {
+                        val newToken = fetchShopeePayNewToken()
+                        request.headers["Authorization"] = "Bearer ${newToken.accessToken}"
+                    }
+                }
+            }
+        }
+
+        install(DefaultRequest) {
+            if (!url.toString().contains("/authentication")) {
+                runBlocking {
+                    val token = getShopeePayCurrentToken()
+                    headers["Authorization"] = "Bearer $token"
+                }
+            }
+        }
+
+        HttpResponseValidator {
+            handleResponseExceptionWithRequest { exception, request ->
+                if (exception is ClientRequestException &&
+                    exception.response.status == HttpStatusCode.Unauthorized &&
+                    !request.url.toString().contains("/authentication")) {
+                    log.warn("shopee pay got 401 for ${request.url}, clearing tokens for retry")
                     shopeePayBearerTokenStorage.clear()
+                    throw exception
                 }
             }
         }
@@ -127,29 +127,44 @@ class HttpClientConfig: Loggable {
                 }
             )
         }
-        install(Auth) {
-            bearer {
-                loadTokens {
-                    gopayBearerTokenStorage.firstOrNull() ?: fetchGopayNewToken()
-                }
-                refreshTokens {
-                    fetchGopayNewToken()
-                }
-                sendWithoutRequest { request ->
-                    // Send credentials with requests to the auth endpoint
-                    request.url.host.contains("gopay") && !request.url.toString().contains("/auth/token")
+
+        install(HttpRequestRetry) {
+            retryOnServerErrors(maxRetries = 2)
+            exponentialDelay()
+
+            retryIf(maxRetries = 1) { request, response ->
+                response.status == HttpStatusCode.Unauthorized &&
+                        !request.url.toString().contains("/authentication")
+            }
+
+            modifyRequest { request ->
+                if (response?.status == HttpStatusCode.Unauthorized) {
+                    log.info("gopay refreshing token due to 401 response")
+                    runBlocking {
+                        val newToken = fetchGopayNewToken()
+                        request.headers["Authorization"] = "Bearer ${newToken.accessToken}"
+                    }
                 }
             }
         }
-        install(HttpRequestRetry) {
-            retryOnServerErrors(maxRetries = 2)
-            retryIf(maxRetries = 1) { request, response ->
-                response.status == HttpStatusCode.Unauthorized
+
+        install(DefaultRequest) {
+            if (!url.toString().contains("/authentication")) {
+                runBlocking {
+                    val token = getShopeePayCurrentToken()
+                    headers["Authorization"] = "Bearer $token"
+                }
             }
-            modifyRequest { request ->
-                // Clear stored token on 401 so it will be refreshed
-                if (response?.status == HttpStatusCode.Unauthorized) {
+        }
+
+        HttpResponseValidator {
+            handleResponseExceptionWithRequest { exception, request ->
+                if (exception is ClientRequestException &&
+                    exception.response.status == HttpStatusCode.Unauthorized &&
+                    !request.url.toString().contains("/authentication")) {
+                    log.warn("gopay got 401 for ${request.url}, clearing tokens for retry")
                     gopayBearerTokenStorage.clear()
+                    throw exception
                 }
             }
         }
@@ -239,5 +254,10 @@ class HttpClientConfig: Loggable {
         } finally {
             authClient.close()
         }
+    }
+
+    private suspend fun getShopeePayCurrentToken(): String {
+        return shopeePayBearerTokenStorage.firstOrNull()?.accessToken
+            ?: fetchShopeePayNewToken().accessToken
     }
 }

@@ -13,6 +13,7 @@ import id.co.bni.payment.domains.dtos.ShopeePayTopUpReq
 import id.co.bni.payment.domains.dtos.SourceDetails
 import id.co.bni.payment.domains.dtos.TopUpEWalletRequest
 import id.co.bni.payment.domains.dtos.TransactionResponse
+import id.co.bni.payment.domains.producers.TransactionProducer
 import id.co.bni.payment.domains.repositories.AccountRepository
 import id.co.bni.payment.domains.repositories.GopayRepository
 import id.co.bni.payment.domains.repositories.ShopeePayRepository
@@ -31,7 +32,8 @@ class PaymentServiceImpl(
     private val gopayRepository: GopayRepository,
     private val shopeePayRepository: ShopeePayRepository,
     private val userRepository: UserRepository,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val transactionProducer: TransactionProducer
 ) : PaymentService, Loggable {
     override suspend fun getEWalletBalanceByUsername(username: String, walletType: String): EWalletBalanceResponse? {
         val user = userRepository.findByUsername(username) ?: throw APIException.NotFoundResourceException(
@@ -143,11 +145,12 @@ class PaymentServiceImpl(
                     referenceId = "TRX-${Instant.now().epochSecond}-GPX",
                 )
 
-                val gopayTopUpResp =
-                    gopayRepository.topUp(gopayTopUpReq) ?: throw APIException.NotFoundResourceException(
-                        statusCode = HttpStatus.NOT_FOUND.value(),
-                        message = "top up failed for walletId: $walletId"
-                    )
+                val gopayTopUpResp = gopayRepository.topUp(gopayTopUpReq) ?: throw APIException.NotFoundResourceException(
+                    statusCode = HttpStatus.NOT_FOUND.value(),
+                    message = "top up failed for walletId: $walletId"
+                )
+
+                log.info("Gopay - top up successful, response: $gopayTopUpResp")
 
                 val affectedRows = accountRepository.updateAccountBalance(
                     account.copy(
@@ -163,19 +166,23 @@ class PaymentServiceImpl(
                         message = "account not found after update for user: $username"
                     )
 
-                TransactionResponse(
+                val trxResp = TransactionResponse(
                     id = UUID.randomUUID().toString(),
-                    transactionId = gopayTopUpResp.transactionId,
+                    transactionId = "TRX-${Instant.now().epochSecond}-GPX",
                     transactionType = TransactionType.TOPUP,
                     amount = topUpEWalletRequest.amount,
                     currency = "IDR",
-                    transactionStatus = TransactionStatus.SUCCESS,
+                    transactionStatus = TransactionStatus.entries.toTypedArray().random(),
                     balanceBefore = account.balance,
                     balanceAfter = updatedAccount.balance,
                     paymentMethod = PaymentMethod.GOPAY,
                     description = topUpEWalletRequest.description,
                     createdAt = LocalDateTime.now()
                 )
+
+                transactionProducer.publishTransactionEvent(trxResp)
+
+                trxResp
             }
 
             else -> {
@@ -192,6 +199,8 @@ class PaymentServiceImpl(
 
                 val shopeePayTopUpResp = shopeePayRepository.topUp(shopeePayTopUpReq)
 
+                log.info("ShopeePay - shopeePayTopUpResp: $shopeePayTopUpResp")
+
                 val affectedRows = accountRepository.updateAccountBalance(
                     account.copy(
                         balance = account.balance - topUpEWalletRequest.amount,
@@ -207,19 +216,23 @@ class PaymentServiceImpl(
                         message = "account not found after update for user: $username"
                     )
 
-                TransactionResponse(
+                val trxResp = TransactionResponse(
                     id = UUID.randomUUID().toString(),
-                    transactionId = shopeePayTopUpResp.topupDetails.transactionId,
+                    transactionId = "TRX-${Instant.now().epochSecond}-SPX",
                     transactionType = TransactionType.TOPUP,
                     amount = topUpEWalletRequest.amount,
                     currency = "IDR",
-                    transactionStatus = TransactionStatus.SUCCESS,
+                    transactionStatus = TransactionStatus.entries.toTypedArray().random(),
                     balanceBefore = account.balance,
                     balanceAfter = updatedAccount.balance,
                     paymentMethod = PaymentMethod.SHOPEE_PAY,
                     description = topUpEWalletRequest.description,
                     createdAt = LocalDateTime.now()
                 )
+
+                transactionProducer.publishTransactionEvent(trxResp)
+
+                trxResp
             }
         }
     }

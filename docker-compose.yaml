@@ -27,6 +27,61 @@ services:
       - ./migrations:/flyway/sql
     command: |
       -url=jdbc:postgresql://one-gate-payment-db:5432/one_gate_payment -user=developer -password=developer123 migrate
+  
+
+  one-gate-payment-zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.15
+    container_name: one-gate-payment-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: [ "CMD", "echo", "ruok", "|", "nc", "localhost", "2181" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  one-gate-payment-kafka:
+    image: confluentinc/cp-kafka:7.2.15
+    container_name: one-gate-payment-kafka
+    depends_on:
+      one-gate-payment-zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: one-gate-payment-zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://one-gate-payment-kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      one-gate-payment-kafka:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: one-gate-payment-kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: one-gate-payment-zookeeper:2181
 
   authentication-one-gate-payment:
     container_name: authentication-one-gate-payment
@@ -48,6 +103,8 @@ services:
       - one-gate-payment-db
       - flyway
       - authentication-one-gate-payment
+      - one-gate-payment-kafka
+      - one-gate-payment-zookeeper
     environment:
       GOPAY_BASE_URL: https://gopay-service-external-services.apps.ocp-one-gate-payment.skynux.fun/gopay
       SERVER_PORT: 8082
@@ -58,6 +115,10 @@ services:
       SHOPEE_PAY_MERCHANT_ID: SHOPEE_MERCHANT_001
       SHOPEE_PAY_API_KEY: ShopeePayApiKey123
       SHOPEE_PAY_SIGNATURE: ShopeePaySignature456
+      DB_URL: r2dbc:postgresql://one-gate-payment-db:5432/one_gate_payment
+      DB_USERNAME: developer
+      DB_PASSWORD: developer123
+      BOOTSTRAP_SERVERS: one-gate-payment-kafka:9092
     ports:
       - "8082:8082"
     build:

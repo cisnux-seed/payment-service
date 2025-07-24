@@ -13,6 +13,7 @@ import id.co.bni.payment.domains.dtos.ShopeePayTopUpReq
 import id.co.bni.payment.domains.dtos.SourceDetails
 import id.co.bni.payment.domains.dtos.TopUpEWalletRequest
 import id.co.bni.payment.domains.dtos.TransactionResponse
+import id.co.bni.payment.domains.entities.Transaction
 import id.co.bni.payment.domains.producers.TransactionProducer
 import id.co.bni.payment.domains.repositories.AccountRepository
 import id.co.bni.payment.domains.repositories.GopayRepository
@@ -180,7 +181,24 @@ class PaymentServiceImpl(
                     createdAt = LocalDateTime.now()
                 )
 
-                transactionProducer.publishTransactionEvent(trxResp)
+                val trx = Transaction(
+                    id = trxResp.id,
+                    userId = user.id,
+                    accountId = updatedAccount.id,
+                    transactionId = trxResp.transactionId,
+                    transactionType = TransactionType.TOPUP,
+                    transactionStatus = trxResp.transactionStatus,
+                    amount = topUpEWalletRequest.amount,
+                    balanceBefore = trxResp.balanceBefore,
+                    balanceAfter = trxResp.balanceAfter,
+                    currency = trxResp.currency,
+                    description = trxResp.description,
+                    paymentMethod = PaymentMethod.SHOPEE_PAY,
+                    createdAt = trxResp.createdAt,
+                    updatedAt = trxResp.createdAt
+                )
+
+                transactionProducer.publishTransactionEvent(trx)
 
                 trxResp
             }
@@ -230,7 +248,24 @@ class PaymentServiceImpl(
                     createdAt = LocalDateTime.now()
                 )
 
-                transactionProducer.publishTransactionEvent(trxResp)
+                val trx = Transaction(
+                    id = trxResp.id,
+                    userId = user.id,
+                    accountId = updatedAccount.id,
+                    transactionId = trxResp.transactionId,
+                    transactionType = TransactionType.TOPUP,
+                    transactionStatus = trxResp.transactionStatus,
+                    amount = topUpEWalletRequest.amount,
+                    balanceBefore = trxResp.balanceBefore,
+                    balanceAfter = trxResp.balanceAfter,
+                    currency = trxResp.currency,
+                    description = trxResp.description,
+                    paymentMethod = PaymentMethod.SHOPEE_PAY,
+                    createdAt = trxResp.createdAt,
+                    updatedAt = trxResp.createdAt
+                )
+
+                transactionProducer.publishTransactionEvent(trx)
 
                 trxResp
             }

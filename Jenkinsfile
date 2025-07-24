@@ -18,7 +18,7 @@ pipeline {
     stages {
         stage('SAST Analysis') {
             steps {
-                withCredentials([string(credentialsId: 'sonarqube-payment-service-token', variable: 'SONAR_TOKEN')]) {
+                withCredentials([string(credentialsId: 'sonar-payment-service-token', variable: 'SONAR_TOKEN')]) {
                     script {
                         echo "Running SAST analysis with SonarQube..."
 

@@ -61,10 +61,10 @@ spec:
   source:
     type: Git
     git:
-      uri: https://github.com/cisnux-seed/payment-service.git
+      uri: git@github.com:cisnux-seed/payment-service.git
       ref: main
     sourceSecret:
-      name: github-token
+      name: github-ssh-keys
   strategy:
     type: Docker
     dockerStrategy:

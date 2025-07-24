@@ -38,16 +38,6 @@ spec:
                 secretKeyRef:
                   name: payment-service-secrets
                   key: db-password
-            - name: REFRESH_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: payment-service-secrets
-                  key: refresh-secret
-            - name: ACCESS_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: payment-service-secrets
-                  key: access-secret
             - name: GOPAY_BASE_URL
               valueFrom:
                 secretKeyRef:
@@ -93,10 +83,6 @@ spec:
                 secretKeyRef:
                   name: payment-service-secrets
                   key: bootstrap-servers
-            - name: ACCESS_TOKEN_EXPIRATION
-              value: "900000"
-            - name: REFRESH_TOKEN_EXPIRATION
-              value: "86400000"
             - name: DATABASE_LOG_LEVEL
               value: "INFO"
             - name: SECURITY_LOG_LEVEL

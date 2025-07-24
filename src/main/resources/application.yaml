@@ -32,7 +32,7 @@ spring:
       delivery-timeout-ms: 120000
       enable-idempotence: true
       max-in-flight-requests-per-connection: 1
-      compression-type: snappy
+      compression-type: gzip
       properties:
         spring.json.add.type.headers: false
         spring.json.trusted.packages: "*"

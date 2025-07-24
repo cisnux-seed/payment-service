@@ -1,7 +1,7 @@
 package id.co.bni.payment.infrastructures.producers
 
 import id.co.bni.payment.commons.loggable.Loggable
-import id.co.bni.payment.domains.dtos.TransactionResponse
+import id.co.bni.payment.domains.entities.Transaction
 import id.co.bni.payment.domains.producers.TransactionProducer
 import io.ktor.client.plugins.logging.MDCContext
 import io.ktor.utils.io.InternalAPI
@@ -32,7 +32,7 @@ class TransactionProducerImpl(
             CoroutineName("KafkaProducer") +
             MDCContext()
 
-    override suspend fun publishTransactionEvent(transaction: TransactionResponse): Unit =
+    override suspend fun publishTransactionEvent(transaction: Transaction): Unit =
         withContext(kafkaContext) {
             try {
                 val record = createProducerRecord(transaction)
@@ -52,7 +52,7 @@ class TransactionProducerImpl(
 
 
     override suspend fun publishTransactionEventWithRetry(
-        transaction: TransactionResponse,
+        transaction: Transaction,
         maxRetries: Int,
         initialDelay: Duration,
         maxDelay: Duration,
@@ -84,7 +84,7 @@ class TransactionProducerImpl(
         throw lastException ?: RuntimeException("Unknown error during transaction event publication")
     }
 
-    private fun createProducerRecord(transaction: TransactionResponse): ProducerRecord<String, Any> {
+    private fun createProducerRecord(transaction: Transaction): ProducerRecord<String, Any> {
         val headers = mapOf(
             "event_type" to "transaction_completed",
             "event_version" to "1.0",

@@ -76,8 +76,7 @@ class HttpClientConfig : Loggable {
             exponentialDelay()
 
             retryIf(maxRetries = 1) { request, response ->
-                response.status == HttpStatusCode.Unauthorized &&
-                        !request.url.toString().contains("/authentication")
+                response.status == HttpStatusCode.Unauthorized && !request.url.toString().contains("/authentication")
             }
 
             modifyRequest { request ->
@@ -103,9 +102,8 @@ class HttpClientConfig : Loggable {
 
         HttpResponseValidator {
             handleResponseExceptionWithRequest { exception, request ->
-                if (exception is ClientRequestException &&
-                    exception.response.status == HttpStatusCode.Unauthorized &&
-                    !request.url.toString().contains("/authentication")
+                if (exception is ClientRequestException && exception.response.status == HttpStatusCode.Unauthorized && !request.url.toString()
+                        .contains("/authentication")
                 ) {
                     log.warn("shopee pay got 401 for ${request.url}, clearing tokens for retry")
                     shopeePayBearerTokenStorage.clear()
@@ -125,8 +123,7 @@ class HttpClientConfig : Loggable {
             json(
                 Json {
                     ignoreUnknownKeys = true
-                }
-            )
+                })
         }
 
         install(HttpRequestRetry) {
@@ -134,19 +131,12 @@ class HttpClientConfig : Loggable {
             exponentialDelay()
 
             retryIf(maxRetries = 1) { request, response ->
-                response.status == HttpStatusCode.Unauthorized &&
-                        !request.url.toString().contains("/authentication")
+                response.status == HttpStatusCode.Unauthorized && !request.url.toString().contains("/authentication")
             }
 
             modifyRequest { request ->
-                if (response?.status == HttpStatusCode.Unauthorized) {
-                    log.info("gopay refreshing token due to 401 response")
-                    runBlocking {
-                        val newToken = fetchGopayNewToken()
-                        request.headers["Authorization"] = "Bearer ${newToken.accessToken}"
-                    }
-                } else if (response?.status == HttpStatusCode.Forbidden) {
-                    log.info("gopay refreshing token due to 403 response")
+                if (response?.status == HttpStatusCode.Unauthorized || response?.status == HttpStatusCode.Forbidden) {
+                    log.info("gopay refreshing token due to 401 or 403 response")
                     runBlocking {
                         val newToken = fetchGopayNewToken()
                         request.headers["Authorization"] = "Bearer ${newToken.accessToken}"
@@ -166,11 +156,11 @@ class HttpClientConfig : Loggable {
 
         HttpResponseValidator {
             handleResponseExceptionWithRequest { exception, request ->
-                if (exception is ClientRequestException &&
-                    exception.response.status == HttpStatusCode.Unauthorized &&
-                    !request.url.toString().contains("/authentication")
+                if ((exception is ClientRequestException && exception.response.status == HttpStatusCode.Unauthorized) or
+                    (exception is ClientRequestException && exception.response.status == HttpStatusCode.Forbidden) && !request.url.toString()
+                        .contains("/authentication")
                 ) {
-                    log.warn("gopay got 401 for ${request.url}, clearing tokens for retry")
+                    log.warn("gopay got 401 or 403 for ${request.url}, clearing tokens for retry")
                     gopayBearerTokenStorage.clear()
                     throw exception
                 }
@@ -184,8 +174,7 @@ class HttpClientConfig : Loggable {
                 json(
                     Json {
                         ignoreUnknownKeys = true
-                    }
-                )
+                    })
             }
         }
 
@@ -227,8 +216,7 @@ class HttpClientConfig : Loggable {
                 json(
                     Json {
                         ignoreUnknownKeys = true
-                    }
-                )
+                    })
             }
         }
 
@@ -265,12 +253,10 @@ class HttpClientConfig : Loggable {
     }
 
     private suspend fun getShopeePayCurrentToken(): String {
-        return shopeePayBearerTokenStorage.firstOrNull()?.accessToken
-            ?: fetchShopeePayNewToken().accessToken
+        return shopeePayBearerTokenStorage.firstOrNull()?.accessToken ?: fetchShopeePayNewToken().accessToken
     }
 
     private suspend fun getGopayCurrentToken(): String {
-        return shopeePayBearerTokenStorage.firstOrNull()?.accessToken
-            ?: fetchGopayNewToken().accessToken
+        return shopeePayBearerTokenStorage.firstOrNull()?.accessToken ?: fetchGopayNewToken().accessToken
     }
 }

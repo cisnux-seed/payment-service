@@ -145,6 +145,12 @@ class HttpClientConfig : Loggable {
                         val newToken = fetchGopayNewToken()
                         request.headers["Authorization"] = "Bearer ${newToken.accessToken}"
                     }
+                } else if (response?.status == HttpStatusCode.Forbidden) {
+                    log.info("gopay refreshing token due to 403 response")
+                    runBlocking {
+                        val newToken = fetchGopayNewToken()
+                        request.headers["Authorization"] = "Bearer ${newToken.accessToken}"
+                    }
                 }
             }
         }

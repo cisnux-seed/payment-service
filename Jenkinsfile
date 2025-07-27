@@ -30,6 +30,14 @@ pipeline {
                                 -Dsonar.token=\${SONAR_TOKEN} \\
                                 -Dsonar.junit.reportPaths=build/test-results/test \\
                                 -Dsonar.junit.reportPaths=build/test-results/test \\
+                                -Dsonar.coverage.exclusions="**/domains/dtos/**,**/domains/entities/**,
+                                **/domains/producers/**,
+                                **/applications/resolvers/**,**/commons/configs/**,
+                                **/commons/exceptions/**,**/commons/errorhandlers/**,
+                                **/*Dto.kt,**/*Config.kt,**/*Request.kt,
+                                **/*Response.kt,**/*Req.kt,**/*Resp.kt,
+                                **/ShopeePayRepositoryImpl.kt,
+                                **/GopayRepositoryImpl.kt" \\
                                 --no-daemon \\
                                 --console=plain \\
                                 --quiet

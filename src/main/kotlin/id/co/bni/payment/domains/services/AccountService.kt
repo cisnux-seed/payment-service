@@ -3,7 +3,6 @@ package id.co.bni.payment.domains.services
 import id.co.bni.payment.domains.dtos.AccountResponse
 import id.co.bni.payment.domains.dtos.BalanceResponse
 import id.co.bni.payment.domains.entities.Account
-import java.math.BigDecimal
 
 interface AccountService {
     suspend fun updateAccountBalance(account: Account): Int

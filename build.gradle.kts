@@ -5,6 +5,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     kotlin("plugin.serialization") version "2.1.0"
     id("org.sonarqube") version "6.2.0.5505"
+    id("jacoco")
 }
 
 group = "id.co.bni"
@@ -21,6 +22,10 @@ repositories {
 }
 
 dependencies {
+    val mockkVersion = "1.14.5"
+    val springMockkVersion = "4.0.2"
+    val ktorVersion = "3.2.2"
+
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -32,21 +37,24 @@ dependencies {
     implementation("org.springframework.kafka:spring-kafka")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
-    runtimeOnly("com.h2database:h2")
-    runtimeOnly("io.r2dbc:r2dbc-h2")
+    testImplementation("io.r2dbc:r2dbc-h2")
+    testImplementation("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("org.postgresql:r2dbc-postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testImplementation("io.mockk:mockk:$mockkVersion")
+    testImplementation("com.ninja-squad:springmockk:$springMockkVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    implementation("io.ktor:ktor-client-core:3.2.2")
-    implementation("io.ktor:ktor-client-cio:3.2.2")
-    implementation("io.ktor:ktor-client-auth:3.2.2")
-    implementation("io.ktor:ktor-client-logging:3.2.2")
-    implementation("io.ktor:ktor-client-content-negotiation:3.2.2")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.2.2")
+    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-auth:$ktorVersion")
+    implementation("io.ktor:ktor-client-logging:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
 
 }
 
@@ -56,6 +64,47 @@ kotlin {
     }
 }
 
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+    classDirectories.setFrom(
+        files(classDirectories.files.map {
+            fileTree(it) {
+                exclude(
+                    "**/domains/dtos/**",
+                    "**/domains/entities/**",
+                    "**/domains/producers/**",
+                    "**/applications/resolvers/**",
+                    "**/commons/configs/**",
+                    "**/commons/exceptions/**",
+                    "**/commons/errorhandlers/**",
+                    "**/*Dto.class",
+                    "**/*Config.class",
+                    "**/*Request.class",
+                    "**/*Response.class",
+                    "**/*Req.class",
+                    "**/*Resp.class",
+                    "**/ShopeePayRepositoryImpl\$topUp*.class",
+                    "**/ShopeePayRepositoryImpl\$getShopeePayBalance*.class",
+                    "**/GopayRepositoryImpl\$topUp*.class",
+                    "**/GopayRepositoryImpl\$getBalanceByWalletId*.class"
+                )
+            }
+        })
+    )
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+sonar {
+    properties {
+        property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+    }
 }

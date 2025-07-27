@@ -23,11 +23,13 @@ pipeline {
                         echo "Running SAST analysis with SonarQube..."
 
                         sh """
-                            gradle sonar \\
+                            gradle clean test jacocoTestReport sonar \\
                                 -Dsonar.projectKey=payment-service \\
                                 -Dsonar.projectName='payment-service' \\
                                 -Dsonar.host.url=\${SONARQUBE_URL} \\
                                 -Dsonar.token=\${SONAR_TOKEN} \\
+                                -Dsonar.junit.reportPaths=build/test-results/test \\
+                                -Dsonar.junit.reportPaths=build/test-results/test \\
                                 --no-daemon \\
                                 --console=plain \\
                                 --quiet

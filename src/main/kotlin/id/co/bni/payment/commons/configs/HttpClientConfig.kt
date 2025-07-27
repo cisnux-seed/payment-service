@@ -76,7 +76,7 @@ class HttpClientConfig : Loggable {
             exponentialDelay()
 
             retryIf(maxRetries = 1) { request, response ->
-                response.status == HttpStatusCode.Unauthorized && !request.url.toString().contains("/authentication")
+                response.status == HttpStatusCode.Unauthorized && !request.url.toString().contains(AUTHENTICATION_PATH)
             }
 
             modifyRequest { request ->
@@ -92,7 +92,7 @@ class HttpClientConfig : Loggable {
         }
 
         install(DefaultRequest) {
-            if (!url.toString().contains("/authentication")) {
+            if (!url.toString().contains(AUTHENTICATION_PATH)) {
                 runBlocking {
                     val token = getShopeePayCurrentToken()
                     headers["Authorization"] = "Bearer $token"
@@ -103,7 +103,7 @@ class HttpClientConfig : Loggable {
         HttpResponseValidator {
             handleResponseExceptionWithRequest { exception, request ->
                 if (exception is ClientRequestException && exception.response.status == HttpStatusCode.Unauthorized && !request.url.toString()
-                        .contains("/authentication")
+                        .contains(AUTHENTICATION_PATH)
                 ) {
                     log.warn("shopee pay got 401 for ${request.url}, clearing tokens for retry")
                     shopeePayBearerTokenStorage.clear()
@@ -131,7 +131,7 @@ class HttpClientConfig : Loggable {
             exponentialDelay()
 
             retryIf(maxRetries = 1) { request, response ->
-                response.status == HttpStatusCode.Unauthorized && !request.url.toString().contains("/authentication")
+                response.status == HttpStatusCode.Unauthorized && !request.url.toString().contains(AUTHENTICATION_PATH)
             }
 
             modifyRequest { request ->
@@ -146,7 +146,7 @@ class HttpClientConfig : Loggable {
         }
 
         install(DefaultRequest) {
-            if (!url.toString().contains("/authentication")) {
+            if (!url.toString().contains(AUTHENTICATION_PATH)) {
                 runBlocking {
                     val token = getGopayCurrentToken()
                     headers["Authorization"] = "Bearer $token"
@@ -158,7 +158,7 @@ class HttpClientConfig : Loggable {
             handleResponseExceptionWithRequest { exception, request ->
                 if ((exception is ClientRequestException && exception.response.status == HttpStatusCode.Unauthorized) or
                     (exception is ClientRequestException && exception.response.status == HttpStatusCode.Forbidden) && !request.url.toString()
-                        .contains("/authentication")
+                        .contains(AUTHENTICATION_PATH)
                 ) {
                     log.warn("gopay got 401 or 403 for ${request.url}, clearing tokens for retry")
                     gopayBearerTokenStorage.clear()
@@ -257,6 +257,10 @@ class HttpClientConfig : Loggable {
     }
 
     private suspend fun getGopayCurrentToken(): String {
-        return shopeePayBearerTokenStorage.firstOrNull()?.accessToken ?: fetchGopayNewToken().accessToken
+        return gopayBearerTokenStorage.firstOrNull()?.accessToken ?: fetchGopayNewToken().accessToken
+    }
+
+    private companion object{
+        const val AUTHENTICATION_PATH = "/authentication"
     }
 }

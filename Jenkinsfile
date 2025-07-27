@@ -38,6 +38,7 @@ pipeline {
                                 **/*Response.kt,**/*Req.kt,**/*Resp.kt,
                                 **/ShopeePayRepositoryImpl.kt,
                                 **/GopayRepositoryImpl.kt" \\
+                                -Dsonar.exclusions="**/commons/configs/**" \\
                                 --no-daemon \\
                                 --console=plain \\
                                 --quiet

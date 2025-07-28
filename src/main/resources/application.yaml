@@ -43,6 +43,61 @@ logging:
     org.springframework.r2dbc.core: ${DATABASE_LOG_LEVEL:DEBUG}
     io.r2dbc.spi: ${DATABASE_LOG_LEVEL:DEBUG}
     org.springframework.web: ${WEB_LOG_LEVEL:DEBUG}
+    root: ${ROOT_LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} | ${spring.application.name} | %logger | %M | %X{traceId} | %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} | ${spring.application.name} | %logger | %M | %X{traceId} | %msg%n"
+  file:
+    name: ${APP_LOG_LOCATION:payment-service-log}/${spring.application.name}.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 10
+      total-size-cap: 1GB
+      file-name-pattern: ${APP_LOG_LOCATION:payment-service-log}/${spring.application.name}-%d{yyyy-MM-dd}.%i.log
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+otel:
+  service:
+    name: payment-service
+  exporter:
+    otlp:
+      protocol: grpc
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+  instrumentation:
+    logback-appender:
+      enabled: true
+      experimental-log-attributes: true
+      experimental:
+        capture-code-attributes: true
+        capture-key-value-pair-attributes: true
+        capture-marker-attribute: true
+        capture-logger-context-attributes: true
+        capture-mdc-attributes: '*'
+    micrometer:
+      enabled: true
+  resource:
+    attributes:
+      deployment:
+        environment: ${ENVIRONMENT:development}
+      service:
+        name: payment-service
+        namespace: one-gate-payment
 app:
   kafka:
     transaction-topic: transaction-events

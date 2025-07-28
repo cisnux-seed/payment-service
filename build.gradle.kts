@@ -25,6 +25,12 @@ dependencies {
     val mockkVersion = "1.14.5"
     val springMockkVersion = "4.0.2"
     val ktorVersion = "3.2.2"
+    val openTelemetryVersion = "1.42.1"
+    val openTelemetryInstrumentationVersion = "2.6.0"
+    val slf4jVersion = "1.10.2"
+
+    implementation(platform("io.opentelemetry:opentelemetry-bom:$openTelemetryVersion"))
+    implementation(platform("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:$openTelemetryInstrumentationVersion"))
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
@@ -37,6 +43,8 @@ dependencies {
     implementation("org.springframework.kafka:spring-kafka")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:${slf4jVersion}")
     testImplementation("io.r2dbc:r2dbc-h2")
     testImplementation("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")

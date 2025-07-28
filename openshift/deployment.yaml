@@ -89,6 +89,14 @@ spec:
               value: "INFO"
             - name: WEB_LOG_LEVEL
               value: "INFO"
+            - name: ROOT_LOG_LEVEL
+              value: "ERROR"
+            - name: APP_LOG_LOCATION
+              value: "/var/log/authentication-service-log"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability-one-gate-payment.svc.cluster.local:4317"
+            - name: ENVIRONMENT
+              value: "production"
           resources:
             requests:
               memory: "256Mi"

@@ -24,15 +24,22 @@ class SubjectArgumentResolver : HandlerMethodArgumentResolver {
         extractSubjectFromJWT(exchange.request)
     }
 
-    private fun extractSubjectFromJWT(request: ServerHttpRequest): String {
+    private fun extractTokenFromJWT(request: ServerHttpRequest): String{
         val authHeader = request.headers.getFirst("Authorization")
-            ?: throw APIException.UnauthenticatedException(HttpStatus.UNAUTHORIZED.value(), "No Authorization header")
-
-        if (!authHeader.startsWith("Bearer ")) {
-            throw APIException.UnauthenticatedException(HttpStatus.UNAUTHORIZED.value(), "Invalid Authorization header")
+        if (authHeader?.startsWith("Bearer ") == true){
+            return authHeader.substring(7)
         }
 
-        val token = authHeader.substring(7)
+        val cookieToken = request.cookies["auth-token"]?.firstOrNull()?.value
+        if (cookieToken != null) {
+            return cookieToken
+        }
+
+        throw APIException.UnauthenticatedException(HttpStatus.UNAUTHORIZED.value(), "no JWT found")
+    }
+
+    private fun extractSubjectFromJWT(request: ServerHttpRequest): String {
+        val token = extractTokenFromJWT(request)
 
         return try {
             val payload = token.split(".")[1]
@@ -41,7 +48,7 @@ class SubjectArgumentResolver : HandlerMethodArgumentResolver {
             val claims = objectMapper.readValue(decodedBytes, Map::class.java)
             claims["sub"] as? String
                 ?: throw APIException.UnauthenticatedException(HttpStatus.UNAUTHORIZED.value(), "No subject in JWT")
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             throw APIException.UnauthenticatedException(HttpStatus.UNAUTHORIZED.value(), "Invalid JWT")
         }
     }

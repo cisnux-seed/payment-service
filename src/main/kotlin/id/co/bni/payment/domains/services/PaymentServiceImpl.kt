@@ -193,7 +193,7 @@ class PaymentServiceImpl(
                     balanceAfter = trxResp.balanceAfter,
                     currency = trxResp.currency,
                     description = trxResp.description,
-                    paymentMethod = PaymentMethod.SHOPEE_PAY,
+                    paymentMethod = PaymentMethod.GOPAY,
                     createdAt = trxResp.createdAt,
                     updatedAt = trxResp.createdAt
                 )

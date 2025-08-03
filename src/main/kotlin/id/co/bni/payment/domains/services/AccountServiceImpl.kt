@@ -79,7 +79,7 @@ class AccountServiceImpl(
         return balanceResponse
     }
 
-    suspend fun invalidateUserCache(username: String) {
+    override suspend fun invalidateUserCache(username: String) {
         cacheService.delete(CacheKeys.accountKey(username))
         cacheService.delete(CacheKeys.balanceKey(username))
     }

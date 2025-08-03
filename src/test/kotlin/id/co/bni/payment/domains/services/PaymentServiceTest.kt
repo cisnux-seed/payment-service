@@ -57,7 +57,6 @@ class PaymentServiceTest {
     @MockK
     private lateinit var cacheInvalidationService: CacheInvalidationService
 
-
     @InjectMockKs
     private lateinit var paymentService: PaymentServiceImpl
 
@@ -233,7 +232,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    fun `topUpEWallet with valid GOPAY request should return transaction response`() = runTest {
+    fun `topUpEWallet with valid GOPAY request should return transaction response and invalidate caches`() = runTest {
         // arrange
         val dummyUpdatedAccount = dummyAccount.copy(balance = dummyBalance - dummyTopUpAmount)
         val dummyAffectedRows = 1
@@ -245,6 +244,7 @@ class PaymentServiceTest {
         coEvery { accountRepository.updateAccountBalance(any()) } returns dummyAffectedRows
         coEvery { accountRepository.getAccountByUserId(dummyUserId) } returns dummyUpdatedAccount
         coEvery { transactionProducer.publishTransactionEvent(capture(transactionSlot)) } returns Unit
+        coEvery { cacheInvalidationService.invalidateTransactionAndUserCaches(dummyUsername) } returns Unit
 
         // act
         val result = paymentService.topUpEWallet(dummyUsername, dummyTopUpRequest)
@@ -269,10 +269,11 @@ class PaymentServiceTest {
         coVerify(exactly = 1) { gopayRepository.topUp(any()) }
         coVerify(exactly = 1) { accountRepository.updateAccountBalance(any()) }
         coVerify(exactly = 1) { transactionProducer.publishTransactionEvent(any()) }
+        coVerify(exactly = 1) { cacheInvalidationService.invalidateTransactionAndUserCaches(dummyUsername) }
     }
 
     @Test
-    fun `topUpEWallet with valid SHOPEE_PAY request should return transaction response`() = runTest {
+    fun `topUpEWallet with valid SHOPEE_PAY request should return transaction response and invalidate caches`() = runTest {
         // arrange
         val dummyShopeePayRequest = dummyTopUpRequest.copy(paymentMethod = PaymentMethod.SHOPEE_PAY.value)
         val dummyUpdatedAccount = dummyAccount.copy(balance = dummyBalance - dummyTopUpAmount)
@@ -285,6 +286,7 @@ class PaymentServiceTest {
         coEvery { accountRepository.updateAccountBalance(any()) } returns dummyAffectedRows
         coEvery { accountRepository.getAccountByUserId(dummyUserId) } returns dummyUpdatedAccount
         coEvery { transactionProducer.publishTransactionEvent(capture(transactionSlot)) } returns Unit
+        coEvery { cacheInvalidationService.invalidateTransactionAndUserCaches(dummyUsername) } returns Unit
 
         // act
         val result = paymentService.topUpEWallet(dummyUsername, dummyShopeePayRequest)
@@ -309,6 +311,38 @@ class PaymentServiceTest {
         coVerify(exactly = 1) { shopeePayRepository.topUp(any()) }
         coVerify(exactly = 1) { accountRepository.updateAccountBalance(any()) }
         coVerify(exactly = 1) { transactionProducer.publishTransactionEvent(any()) }
+        coVerify(exactly = 1) { cacheInvalidationService.invalidateTransactionAndUserCaches(dummyUsername) }
+    }
+
+    @Test
+    fun `topUpEWallet should continue successfully even if cache invalidation fails`() = runTest {
+        // arrange
+        val dummyUpdatedAccount = dummyAccount.copy(balance = dummyBalance - dummyTopUpAmount)
+        val dummyAffectedRows = 1
+
+        coEvery { userRepository.findByUsername(dummyUsername) } returns dummyUser
+        coEvery { accountRepository.getAccountByUserId(dummyUserId) } returns dummyAccount
+        coEvery { gopayRepository.topUp(any()) } returns dummyGopayTopUpResp
+        coEvery { accountRepository.updateAccountBalance(any()) } returns dummyAffectedRows
+        coEvery { accountRepository.getAccountByUserId(dummyUserId) } returns dummyUpdatedAccount
+        coEvery { transactionProducer.publishTransactionEvent(any()) } returns Unit
+        coEvery { cacheInvalidationService.invalidateTransactionAndUserCaches(dummyUsername) } throws RuntimeException("Cache service unavailable")
+
+        // act - should not throw exception despite cache invalidation failure
+        val result = paymentService.topUpEWallet(dummyUsername, dummyTopUpRequest)
+
+        // assert
+        assertNotNull(result)
+        assertEquals(TransactionType.TOPUP, result.transactionType)
+        assertEquals(dummyTopUpAmount, result.amount)
+
+        // Verify that all business operations completed successfully
+        coVerify(exactly = 1) { userRepository.findByUsername(dummyUsername) }
+        coVerify(exactly = 2) { accountRepository.getAccountByUserId(dummyUserId) }
+        coVerify(exactly = 1) { gopayRepository.topUp(any()) }
+        coVerify(exactly = 1) { accountRepository.updateAccountBalance(any()) }
+        coVerify(exactly = 1) { transactionProducer.publishTransactionEvent(any()) }
+        coVerify(exactly = 1) { cacheInvalidationService.invalidateTransactionAndUserCaches(dummyUsername) }
     }
 
     @Test
@@ -327,6 +361,7 @@ class PaymentServiceTest {
         assertEquals("user not found", exception.message)
         assertEquals(404, exception.statusCode)
         coVerify(exactly = 1) { userRepository.findByUsername(dummyNonExistentUsername) }
+        coVerify(exactly = 0) { cacheInvalidationService.invalidateTransactionAndUserCaches(any()) }
     }
 
     @Test
@@ -347,6 +382,7 @@ class PaymentServiceTest {
         assertEquals(403, exception.statusCode)
         coVerify(exactly = 1) { userRepository.findByUsername(dummyUsername) }
         coVerify(exactly = 1) { accountRepository.getAccountByUserId(dummyUserId) }
+        coVerify(exactly = 0) { cacheInvalidationService.invalidateTransactionAndUserCaches(any()) }
     }
 
     @Test
@@ -367,6 +403,7 @@ class PaymentServiceTest {
         assertEquals(400, exception.statusCode)
         coVerify(exactly = 1) { userRepository.findByUsername(dummyUsername) }
         coVerify(exactly = 1) { accountRepository.getAccountByUserId(dummyUserId) }
+        coVerify(exactly = 0) { cacheInvalidationService.invalidateTransactionAndUserCaches(any()) }
     }
 
     @Test
@@ -387,6 +424,7 @@ class PaymentServiceTest {
         assertEquals(400, exception.statusCode)
         coVerify(exactly = 1) { userRepository.findByUsername(dummyUsername) }
         coVerify(exactly = 1) { accountRepository.getAccountByUserId(dummyUserId) }
+        coVerify(exactly = 0) { cacheInvalidationService.invalidateTransactionAndUserCaches(any()) }
     }
 
     @Test
@@ -408,5 +446,6 @@ class PaymentServiceTest {
         coVerify(exactly = 1) { userRepository.findByUsername(dummyUsername) }
         coVerify(exactly = 1) { accountRepository.getAccountByUserId(dummyUserId) }
         coVerify(exactly = 1) { gopayRepository.topUp(any()) }
+        coVerify(exactly = 0) { cacheInvalidationService.invalidateTransactionAndUserCaches(any()) }
     }
 }

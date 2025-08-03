@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
 @Service
 class CacheInvalidationServiceImpl(
     private val cacheService: CacheService,
-    private val accountService: AccountServiceImpl
+    private val accountService: AccountService
 ) : Loggable, CacheInvalidationService {
 
     override suspend fun invalidateTransactionAndUserCaches(username: String) {

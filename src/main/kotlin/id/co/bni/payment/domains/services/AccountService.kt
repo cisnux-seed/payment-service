@@ -8,4 +8,5 @@ interface AccountService {
     suspend fun updateAccountBalance(account: Account): Int
     suspend fun getAccountByUsername(username: String): AccountResponse?
     suspend fun getBalanceByUsername(username: String): BalanceResponse?
+    suspend fun invalidateUserCache(username: String)
 }

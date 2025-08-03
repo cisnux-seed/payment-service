@@ -85,7 +85,7 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: transaction-service-secrets
+                  name: payment-service-secrets
                   key: redis-password
             - name: BOOTSTRAP_SERVERS
               valueFrom:

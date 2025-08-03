@@ -20,11 +20,8 @@ import id.co.bni.payment.domains.repositories.GopayRepository
 import id.co.bni.payment.domains.repositories.ShopeePayRepository
 import id.co.bni.payment.domains.repositories.UserRepository
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

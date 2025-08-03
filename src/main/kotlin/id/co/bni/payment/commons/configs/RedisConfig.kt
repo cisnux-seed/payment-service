@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
@@ -17,6 +18,7 @@ import kotlin.apply
 class RedisConfig {
 
     @Bean
+    @Qualifier("redisObjectMapper")
     fun redisObjectMapper(): ObjectMapper {
         return ObjectMapper().apply {
             registerModule(JavaTimeModule())

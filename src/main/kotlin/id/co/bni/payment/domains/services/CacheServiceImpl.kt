@@ -14,7 +14,6 @@ import java.time.Duration
 @Service
 class CacheServiceImpl(
     private val redisTemplate: ReactiveRedisTemplate<String, Any>,
-    @Qualifier("redisObjectMapper")
     private val objectMapper: ObjectMapper
 ) : CacheService, Loggable {
 

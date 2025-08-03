@@ -77,14 +77,14 @@ class ShopeePayRepositoryImpl(
                     message = shopeePayErrResp.errorMessage
                 } ?: APIException.InternalServerException(
                     statusCode = response.status.value,
-                    message = "Failed to retrieve balance for wallet: $req"
+                    message = "Failed to top up: $req"
                 )
             }
         } catch (e: Exception) {
             log.error(e.message, e)
             throw APIException.InternalServerException(
                 statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                message = "Error retrieving balance for wallet: $req",
+                message = "Error top up balance for wallet: $req",
             )
         }
     }

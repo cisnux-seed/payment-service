@@ -20,7 +20,7 @@ class CacheInvalidationServiceTest {
     private lateinit var accountService: AccountService
 
     @InjectMockKs
-    private lateinit var cacheInvalidationService: CacheInvalidationServiceImpl
+    private lateinit var cacheInvalidationService: CacheInvalidationService
 
     @Test
     fun `invalidateTransactionAndUserCaches should invalidate all relevant caches successfully`() = runTest {

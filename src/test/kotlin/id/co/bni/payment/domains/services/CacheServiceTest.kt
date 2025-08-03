@@ -1,7 +1,6 @@
 package id.co.bni.payment.domains.services
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import id.co.bni.payment.commons.exceptions.APIException
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.impl.annotations.InjectMockKs

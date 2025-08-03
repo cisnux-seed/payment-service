@@ -5,6 +5,7 @@ import id.co.bni.payment.commons.exceptions.APIException
 import id.co.bni.payment.commons.loggable.Loggable
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -13,6 +14,7 @@ import java.time.Duration
 @Service
 class CacheServiceImpl(
     private val redisTemplate: ReactiveRedisTemplate<String, Any>,
+    @Qualifier("redisObjectMapper")
     private val objectMapper: ObjectMapper
 ) : CacheService, Loggable {
 

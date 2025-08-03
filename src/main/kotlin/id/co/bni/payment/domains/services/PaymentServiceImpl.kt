@@ -19,6 +19,9 @@ import id.co.bni.payment.domains.repositories.AccountRepository
 import id.co.bni.payment.domains.repositories.GopayRepository
 import id.co.bni.payment.domains.repositories.ShopeePayRepository
 import id.co.bni.payment.domains.repositories.UserRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -148,10 +151,14 @@ class PaymentServiceImpl(
             }
         }
 
-        try {
-            cacheInvalidationService.invalidateTransactionAndUserCaches(username)
-        } catch (e: Exception) {
-            log.error("Cache invalidation failed for user: $username", e)
+        withContext(Dispatchers.IO){
+            async {
+                try {
+                    cacheInvalidationService.invalidateTransactionAndUserCaches(username)
+                } catch (e: Exception) {
+                    log.error("Cache invalidation failed for user: $username", e)
+                }
+            }
         }
 
         return transactionResponse
@@ -223,7 +230,16 @@ class PaymentServiceImpl(
             updatedAt = trxResp.createdAt
         )
 
-        transactionProducer.publishTransactionEvent(trx)
+        withContext(Dispatchers.IO){
+            async {
+                try {
+                    transactionProducer.publishTransactionEvent(trx)
+                    log.info("gopay top up event published successfully for transaction: ${trx.transactionId}")
+                } catch (e: Exception) {
+                    log.error("Failed to publish transaction event for transaction: ${trx.transactionId}", e)
+                }
+            }
+        }
 
         return trxResp
     }
@@ -296,7 +312,16 @@ class PaymentServiceImpl(
             updatedAt = trxResp.createdAt
         )
 
-        transactionProducer.publishTransactionEvent(trx)
+        withContext(Dispatchers.IO){
+            async {
+                try {
+                    transactionProducer.publishTransactionEvent(trx)
+                    log.info("shopee pay top up event published successfully for transaction: ${trx.transactionId}")
+                } catch (e: Exception) {
+                    log.error("Failed to publish transaction event for transaction: ${trx.transactionId}", e)
+                }
+            }
+        }
 
         return trxResp
     }

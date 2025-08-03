@@ -78,6 +78,15 @@ spec:
                 secretKeyRef:
                   name: payment-service-secrets
                   key: shopee-pay-signature
+            - name: REDIS_HOST
+              value: "redis-service"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: transaction-service-secrets
+                  key: redis-password
             - name: BOOTSTRAP_SERVERS
               valueFrom:
                 secretKeyRef:

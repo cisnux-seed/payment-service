@@ -54,6 +54,10 @@ class PaymentServiceTest {
     @MockK
     private lateinit var transactionProducer: TransactionProducer
 
+    @MockK
+    private lateinit var cacheInvalidationService: CacheInvalidationService
+
+
     @InjectMockKs
     private lateinit var paymentService: PaymentServiceImpl
 

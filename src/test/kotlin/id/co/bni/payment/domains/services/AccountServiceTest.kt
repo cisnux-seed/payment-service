@@ -28,6 +28,8 @@ class AccountServiceTest {
     private lateinit var accountRepository: AccountRepository
     @MockK
     private lateinit var userRepository: UserRepository
+    @MockK
+    private lateinit var cacheService: CacheService
 
     // Dummy data
     private val dummyUserId = 12345L
@@ -63,7 +65,7 @@ class AccountServiceTest {
 
     @BeforeEach
     fun setUp() {
-        accountService = AccountServiceImpl(accountRepository, userRepository)
+        accountService = AccountServiceImpl(accountRepository, userRepository, cacheService)
     }
 
     @Test

@@ -19,9 +19,9 @@ import id.co.bni.payment.domains.repositories.AccountRepository
 import id.co.bni.payment.domains.repositories.GopayRepository
 import id.co.bni.payment.domains.repositories.ShopeePayRepository
 import id.co.bni.payment.domains.repositories.UserRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -146,18 +146,17 @@ class PaymentServiceImpl(
             PaymentMethod.GOPAY.value -> {
                 processGopayTopUp(user.id, account, walletId, topUpEWalletRequest, username)
             }
+
             else -> {
                 processShopeePayTopUp(user.id, account, walletId, topUpEWalletRequest, username)
             }
         }
 
-        withContext(Dispatchers.IO){
-            async {
-                try {
-                    cacheInvalidationService.invalidateTransactionAndUserCaches(username)
-                } catch (e: Exception) {
-                    log.error("Cache invalidation failed for user: $username", e)
-                }
+        CoroutineScope(SupervisorJob()).launch {
+            try {
+                cacheInvalidationService.invalidateTransactionAndUserCaches(username)
+            } catch (e: Exception) {
+                log.error("Cache invalidation failed for user: $username", e)
             }
         }
 
@@ -230,14 +229,12 @@ class PaymentServiceImpl(
             updatedAt = trxResp.createdAt
         )
 
-        withContext(Dispatchers.IO){
-            async {
-                try {
-                    transactionProducer.publishTransactionEvent(trx)
-                    log.info("gopay top up event published successfully for transaction: ${trx.transactionId}")
-                } catch (e: Exception) {
-                    log.error("Failed to publish transaction event for transaction: ${trx.transactionId}", e)
-                }
+        CoroutineScope(SupervisorJob()).launch {
+            try {
+                transactionProducer.publishTransactionEvent(trx)
+                log.info("gopay top up event published successfully for transaction: ${trx.transactionId}")
+            } catch (e: Exception) {
+                log.error("Failed to publish transaction event for transaction: ${trx.transactionId}", e)
             }
         }
 
@@ -312,14 +309,12 @@ class PaymentServiceImpl(
             updatedAt = trxResp.createdAt
         )
 
-        withContext(Dispatchers.IO){
-            async {
-                try {
-                    transactionProducer.publishTransactionEvent(trx)
-                    log.info("shopee pay top up event published successfully for transaction: ${trx.transactionId}")
-                } catch (e: Exception) {
-                    log.error("Failed to publish transaction event for transaction: ${trx.transactionId}", e)
-                }
+        CoroutineScope(SupervisorJob()).launch {
+            try {
+                transactionProducer.publishTransactionEvent(trx)
+                log.info("shopee pay top up event published successfully for transaction: ${trx.transactionId}")
+            } catch (e: Exception) {
+                log.error("Failed to publish transaction event for transaction: ${trx.transactionId}", e)
             }
         }
 

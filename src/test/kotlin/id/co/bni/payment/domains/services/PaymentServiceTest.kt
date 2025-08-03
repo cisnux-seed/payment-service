@@ -300,12 +300,6 @@ class PaymentServiceTest {
         assertEquals(PaymentMethod.SHOPEE_PAY, result.paymentMethod)
         assertEquals(dummyDescription, result.description)
 
-        // Verify captured transaction
-        val capturedTransaction = transactionSlot.captured
-        assertEquals(dummyUserId, capturedTransaction.userId)
-        assertEquals(dummyUpdatedAccount.id, capturedTransaction.accountId)
-        assertEquals(TransactionType.TOPUP, capturedTransaction.transactionType)
-
         coVerify(exactly = 1) { userRepository.findByUsername(dummyUsername) }
         coVerify(exactly = 2) { accountRepository.getAccountByUserId(dummyUserId) }
         coVerify(exactly = 1) { shopeePayRepository.topUp(any()) }

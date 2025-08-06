@@ -13,6 +13,7 @@ import id.co.bni.payment.domains.dtos.ShopeePayTopUpReq
 import id.co.bni.payment.domains.dtos.SourceDetails
 import id.co.bni.payment.domains.dtos.TopUpEWalletRequest
 import id.co.bni.payment.domains.dtos.TransactionResponse
+import id.co.bni.payment.domains.entities.Account
 import id.co.bni.payment.domains.entities.Transaction
 import id.co.bni.payment.domains.producers.TransactionProducer
 import id.co.bni.payment.domains.repositories.AccountRepository
@@ -142,14 +143,37 @@ class PaymentServiceImpl(
             }
         }${topUpEWalletRequest.phoneNumber}"
 
+        val trxStatus = TransactionStatus.entries.toTypedArray().random()
+
         val transactionResponse = when (topUpEWalletRequest.paymentMethod) {
             PaymentMethod.GOPAY.value -> {
-                processGopayTopUp(user.id, account, walletId, topUpEWalletRequest, username)
+                processGopayTopUp(
+                    user.id,
+                    account,
+                    walletId,
+                    topUpEWalletRequest,
+                    username = username,
+                    trxStatus = trxStatus
+                )
             }
 
             else -> {
-                processShopeePayTopUp(user.id, account, walletId, topUpEWalletRequest, username)
+                processShopeePayTopUp(
+                    user.id,
+                    account,
+                    walletId,
+                    topUpEWalletRequest,
+                    username = username,
+                    trxStatus = trxStatus
+                )
             }
+        }
+
+        if (trxStatus == TransactionStatus.FAILED) {
+            throw APIException.InternalServerException(
+                statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                message = "top up failed, please try again later"
+            )
         }
 
         CoroutineScope(SupervisorJob()).launch {
@@ -165,9 +189,10 @@ class PaymentServiceImpl(
 
     private suspend fun processGopayTopUp(
         userId: Long,
-        account: id.co.bni.payment.domains.entities.Account,
+        account: Account,
         walletId: String,
         topUpEWalletRequest: TopUpEWalletRequest,
+        trxStatus: TransactionStatus,
         username: String
     ): TransactionResponse {
         val gopayTopUpReq = GopayTopUpReq(
@@ -204,7 +229,7 @@ class PaymentServiceImpl(
             transactionType = TransactionType.TOPUP,
             amount = topUpEWalletRequest.amount,
             currency = "IDR",
-            transactionStatus = TransactionStatus.entries.toTypedArray().random(),
+            transactionStatus = trxStatus,
             balanceBefore = account.balance,
             balanceAfter = updatedAccount.balance,
             paymentMethod = PaymentMethod.GOPAY,
@@ -243,10 +268,11 @@ class PaymentServiceImpl(
 
     private suspend fun processShopeePayTopUp(
         userId: Long,
-        account: id.co.bni.payment.domains.entities.Account,
+        account: Account,
         walletId: String,
         topUpEWalletRequest: TopUpEWalletRequest,
-        username: String
+        username: String,
+        trxStatus: TransactionStatus
     ): TransactionResponse {
         val shopeePayTopUpReq = ShopeePayTopUpReq(
             userId = walletId,
@@ -284,7 +310,7 @@ class PaymentServiceImpl(
             transactionType = TransactionType.TOPUP,
             amount = topUpEWalletRequest.amount,
             currency = "IDR",
-            transactionStatus = TransactionStatus.entries.toTypedArray().random(),
+            transactionStatus = trxStatus,
             balanceBefore = account.balance,
             balanceAfter = updatedAccount.balance,
             paymentMethod = PaymentMethod.SHOPEE_PAY,

@@ -103,7 +103,11 @@ class PaymentServiceImpl(
     }
 
     @Transactional
-    override suspend fun topUpEWallet(username: String, topUpEWalletRequest: TopUpEWalletRequest): TransactionResponse {
+    override suspend fun topUpEWallet(
+        username: String,
+        topUpEWalletRequest: TopUpEWalletRequest,
+        onFailedTrx: () -> Unit
+    ): TransactionResponse {
         val user = userRepository.findByUsername(username) ?: throw APIException.NotFoundResourceException(
             statusCode = HttpStatus.NOT_FOUND.value(),
             message = "user not found"
@@ -143,37 +147,18 @@ class PaymentServiceImpl(
             }
         }${topUpEWalletRequest.phoneNumber}"
 
-        val trxStatus = TransactionStatus.entries.toTypedArray().random()
-
         val transactionResponse = when (topUpEWalletRequest.paymentMethod) {
             PaymentMethod.GOPAY.value -> {
-                processGopayTopUp(
-                    user.id,
-                    account,
-                    walletId,
-                    topUpEWalletRequest,
-                    username = username,
-                    trxStatus = trxStatus
-                )
+                processGopayTopUp(user.id, account, walletId, topUpEWalletRequest, username)
             }
 
             else -> {
-                processShopeePayTopUp(
-                    user.id,
-                    account,
-                    walletId,
-                    topUpEWalletRequest,
-                    username = username,
-                    trxStatus = trxStatus
-                )
+                processShopeePayTopUp(user.id, account, walletId, topUpEWalletRequest, username)
             }
         }
 
-        if (trxStatus == TransactionStatus.FAILED) {
-            throw APIException.InternalServerException(
-                statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                message = "top up failed, please try again later"
-            )
+        if (transactionResponse.transactionStatus == TransactionStatus.FAILED) {
+            onFailedTrx()
         }
 
         CoroutineScope(SupervisorJob()).launch {
@@ -192,7 +177,6 @@ class PaymentServiceImpl(
         account: Account,
         walletId: String,
         topUpEWalletRequest: TopUpEWalletRequest,
-        trxStatus: TransactionStatus,
         username: String
     ): TransactionResponse {
         val gopayTopUpReq = GopayTopUpReq(
@@ -229,7 +213,7 @@ class PaymentServiceImpl(
             transactionType = TransactionType.TOPUP,
             amount = topUpEWalletRequest.amount,
             currency = "IDR",
-            transactionStatus = trxStatus,
+            transactionStatus = TransactionStatus.entries.toTypedArray().random(),
             balanceBefore = account.balance,
             balanceAfter = updatedAccount.balance,
             paymentMethod = PaymentMethod.GOPAY,
@@ -271,8 +255,7 @@ class PaymentServiceImpl(
         account: Account,
         walletId: String,
         topUpEWalletRequest: TopUpEWalletRequest,
-        username: String,
-        trxStatus: TransactionStatus
+        username: String
     ): TransactionResponse {
         val shopeePayTopUpReq = ShopeePayTopUpReq(
             userId = walletId,
@@ -310,7 +293,7 @@ class PaymentServiceImpl(
             transactionType = TransactionType.TOPUP,
             amount = topUpEWalletRequest.amount,
             currency = "IDR",
-            transactionStatus = trxStatus,
+            transactionStatus = TransactionStatus.entries.toTypedArray().random(),
             balanceBefore = account.balance,
             balanceAfter = updatedAccount.balance,
             paymentMethod = PaymentMethod.SHOPEE_PAY,

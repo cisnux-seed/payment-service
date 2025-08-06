@@ -81,7 +81,7 @@ class PaymentController(
         @RequestParam("ewallet") ewalllet: String
     ): WebResponse<EWalletBalanceResponse> {
         val traceId = UUID.randomUUID().toString()
-        return withContext(MDCContext(mapOf("traceId" to traceId))){
+        return withContext(MDCContext(mapOf("traceId" to traceId))) {
             log.info("getting ewallet balance for user {} from {}", username, ewalllet)
 
             val walletResp =
@@ -111,10 +111,15 @@ class PaymentController(
         @Validated request: TopUpEWalletRequest,
     ): WebResponse<TransactionResponse> {
         val traceId = UUID.randomUUID().toString()
-        return withContext(MDCContext(mapOf("traceId" to traceId))){
+        return withContext(MDCContext(mapOf("traceId" to traceId))) {
             log.info("getting topup information for user {}", username)
 
-            val topUpResp = paymentService.topUpEWallet(username, request)
+            val topUpResp = paymentService.topUpEWallet(username, request) {
+                throw APIException.InternalServerException(
+                    statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    message = "Top up transaction failed, please try again later"
+                )
+            }
 
             WebResponse(
                 meta = MetaResponse(

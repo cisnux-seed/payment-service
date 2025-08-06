@@ -266,7 +266,7 @@ class PaymentControllerTest {
             }
         """.trimIndent()
 
-        coEvery { paymentService.topUpEWallet(eq(dummyUsername), any()) } returns dummyTransactionResponse
+        coEvery { paymentService.topUpEWallet(eq(dummyUsername), any(), any()) } returns dummyTransactionResponse
 
         // act & assert
         webTestClient
@@ -290,7 +290,7 @@ class PaymentControllerTest {
             .jsonPath("$.data.payment_method").isEqualTo(PaymentMethod.GOPAY.name)
             .jsonPath("$.data.description").isEqualTo(dummyDescription)
 
-        coVerify(exactly = 1) { paymentService.topUpEWallet(eq(dummyUsername), any()) }
+        coVerify(exactly = 1) { paymentService.topUpEWallet(eq(dummyUsername), any(), any()) }
     }
 
     @Test

@@ -273,7 +273,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    fun `topUpEWallet with valid SHOPEE_PAY request should return transaction response and invalidate caches`() = runTest {
+        fun `topUpEWallet with valid SHOPEE_PAY request should return transaction response and invalidate caches`() = runTest {
         // arrange
         val dummyShopeePayRequest = dummyTopUpRequest.copy(paymentMethod = PaymentMethod.SHOPEE_PAY.value)
         val dummyUpdatedAccount = dummyAccount.copy(balance = dummyBalance - dummyTopUpAmount)

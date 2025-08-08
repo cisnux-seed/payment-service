@@ -62,6 +62,27 @@ pipeline {
                         }
                     }
                 }
+                stage('Kafka Integration Test'){
+                    steps {
+                        script {
+                            echo "Running Kafka integration tests..."
+                                retry(10) {
+                                    sh '''
+                                        echo "Attempting to connect to Kafka..."
+
+                                        # Direct pipe approach - no command substitution
+                                        if curl -v --connect-timeout 5 --max-time 5 telnet://one-gate-payment-kafka-kafka-bootstrap.one-gate-payment.svc.cluster.local:9092 2>&1 | grep -q "Connected to"; then
+                                            echo "✅ Successfully connected to Kafka"
+                                        else
+                                            echo "❌ Connection attempt failed, retrying..."
+                                            sleep 5
+                                            exit 1
+                                        fi
+                                    '''
+                                }
+                        }
+                    }
+                }
                 stage('Unit Test & SAST Analysis') {
                     steps {
                         withCredentials([string(credentialsId: 'sonarqube-payment-service-token', variable: 'SONAR_TOKEN')]) {

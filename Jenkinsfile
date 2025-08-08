@@ -16,35 +16,83 @@ pipeline {
     }
 
     stages {
-        stage('SAST Analysis') {
-            steps {
-                withCredentials([string(credentialsId: 'sonarqube-payment-service-token', variable: 'SONAR_TOKEN')]) {
-                    script {
-                        echo "Running SAST analysis with SonarQube..."
+        stage('Testing'){
+            failFast true
+            parallel{
+                stage('PostgreSQL Integration Test'){
+                    steps {
+                        script {
+                            echo "Running PostgreSQL integration tests..."
 
-                        sh """
-                            gradle clean test jacocoTestReport sonar \\
-                                -Dsonar.projectKey=payment-service \\
-                                -Dsonar.projectName='payment-service' \\
-                                -Dsonar.host.url=\${SONARQUBE_URL} \\
-                                -Dsonar.token=\${SONAR_TOKEN} \\
-                                -Dsonar.junit.reportPaths=build/test-results/test \\
-                                -Dsonar.junit.reportPaths=build/test-results/test \\
-                                -Dsonar.coverage.exclusions="**/domains/dtos/**,**/domains/entities/**,
-                                **/domains/producers/**,
-                                **/applications/resolvers/**,**/commons/configs/**,
-                                **/commons/exceptions/**,**/commons/errorhandlers/**,
-                                **/*Dto.kt,**/*Config.kt,**/*Request.kt,
-                                **/*Response.kt,**/*Req.kt,**/*Resp.kt,
-                                **/ShopeePayRepositoryImpl.kt,
-                                **/GopayRepositoryImpl.kt" \\
-                                -Dsonar.exclusions="**/commons/configs/**" \\
-                                --no-daemon \\
-                                --console=plain \\
-                                --quiet
+                            retry(10) {
+                                sh '''
+                                    echo "Attempting to connect to PostgreSQL..."
 
-                            echo "✅ SAST analysis completed"
-                        """
+                                    # Direct pipe approach - no command substitution
+                                    if curl -v --connect-timeout 5 --max-time 5 telnet://postgresql-service.one-gate-payment.svc.cluster.local:5432 2>&1 | grep -q "Connected to"; then
+                                        echo "✅ Successfully connected to PostgreSQL"
+                                    else
+                                        echo "❌ Connection attempt failed, retrying..."
+                                        sleep 5
+                                        exit 1
+                                    fi
+                                '''
+                            }
+                        }
+                    }
+                }
+                stage('Redis Integration Test'){
+                    steps {
+                        script {
+                            echo "Running Redis integration tests..."
+                                retry(10) {
+                                    sh '''
+                                        echo "Attempting to connect to Redis..."
+
+                                        # Direct pipe approach - no command substitution
+                                        if curl -v --connect-timeout 5 --max-time 5 telnet://redis-service.one-gate-payment.svc.cluster.local:6379 2>&1 | grep -q "Connected to"; then
+                                            echo "✅ Successfully connected to Redis"
+                                        else
+                                            echo "❌ Connection attempt failed, retrying..."
+                                            sleep 5
+                                            exit 1
+                                        fi
+                                    '''
+                                }
+                        }
+                    }
+                }
+                stage('Unit Test & SAST Analysis') {
+                    steps {
+                        withCredentials([string(credentialsId: 'sonarqube-payment-service-token', variable: 'SONAR_TOKEN')]) {
+                            script {
+                                echo "Running SAST analysis with SonarQube..."
+
+                                sh """
+                                    gradle clean test jacocoTestReport sonar \\
+                                        -Dsonar.projectKey=payment-service \\
+                                        -Dsonar.projectName='payment-service' \\
+                                        -Dsonar.host.url=\${SONARQUBE_URL} \\
+                                        -Dsonar.token=\${SONAR_TOKEN} \\
+                                        -Dsonar.junit.reportPaths=build/test-results/test \\
+                                        -Dsonar.junit.reportPaths=build/test-results/test \\
+                                        -Dsonar.coverage.exclusions="**/domains/dtos/**,**/domains/entities/**,
+                                        **/domains/producers/**,
+                                        **/applications/resolvers/**,**/commons/configs/**,
+                                        **/commons/exceptions/**,**/commons/errorhandlers/**,
+                                        **/*Dto.kt,**/*Config.kt,**/*Request.kt,
+                                        **/*Response.kt,**/*Req.kt,**/*Resp.kt,
+                                        **/ShopeePayRepositoryImpl.kt,
+                                        **/GopayRepositoryImpl.kt" \\
+                                        -Dsonar.exclusions="**/commons/configs/**" \\
+                                        --no-daemon \\
+                                        --console=plain \\
+                                        --quiet
+
+                                    echo "✅ SAST analysis completed"
+                                """
+                            }
+                        }
                     }
                 }
             }
